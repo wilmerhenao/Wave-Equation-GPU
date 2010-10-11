@@ -1,0 +1,8 @@
+*~
+.*.swp
+*.o
+*.pbs
+hello-gpu
+*.o[0-9]*
+*.e[0-9]*
+dump*
