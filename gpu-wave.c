@@ -88,7 +88,7 @@ int main()
       printf("step %d\n", step);
 
     // visualize, if necessary
-    if (step % 20 == 0 && step)
+    if (step % 20 == 0 && t > 38)
     {
       CALL_CL_GUARDED(clEnqueueReadBuffer, (
             queue, cur_u, /*blocking*/ CL_TRUE, /*offset*/ 0,
@@ -148,7 +148,7 @@ int main()
       size_t ldim[] = { 1 };
 
       unsigned base = 15 + dim_x*(7 + dim_y * 5);
-      float value = sin(0.5*t);
+      float value = dt*dt*sin(0.5*t);
       SET_3_KERNEL_ARGS(source_knl, hist_u, base, value);
 
       CALL_CL_GUARDED(clEnqueueNDRangeKernel,
