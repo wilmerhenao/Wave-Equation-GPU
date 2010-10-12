@@ -3,6 +3,9 @@
 *.o
 *.pbs
 hello-gpu
+gpu-wave
 *.o[0-9]*
 *.e[0-9]*
 dump*
+*.bov
+*.dat

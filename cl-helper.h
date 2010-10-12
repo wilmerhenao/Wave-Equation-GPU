@@ -41,7 +41,8 @@
   if ((STATUS_CODE) != CL_SUCCESS) \
   { \
     fprintf(stderr, \
-        "*** '%s' failed with error '%s'.\n", WHAT, \
+        "*** '%s' in '%s' on line %d failed with error '%s'.\n", \
+        WHAT, __FILE__, __LINE__, \
         cl_error_to_str(STATUS_CODE)); \
     abort(); \
   }

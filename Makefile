@@ -1,26 +1,27 @@
-# Makefile for the optimize matrix multiply assignment
-
 # /----------------------------------------------------------
 # | General setup
 # +----------------------------------------------------------
 # |
 CC = cc
-CFLAGS = -std=c99 -g -Wall -Werror
-LDFLAGS = -lOpenCL
+CFLAGS = -std=c99 -g -Wall -Werror -D_XOPEN_SOURCE=500
+LDFLAGS = -lOpenCL -lm
 # |
 # \----------------------------------------------------------
 
 # /----------------------------------------------------------
-# | Compilation of matmul, matmul-blocked, matmul-blas
+# | Compilation rules
 # +----------------------------------------------------------
 # |
 
 .PHONY:	all
-all:	hello-gpu
+all:	hello-gpu gpu-wave
 
 # Compile a C version (using basic_dgemm.c, in this case):
 
 hello-gpu: hello-gpu.o cl-helper.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+gpu-wave: gpu-wave.o cl-helper.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 # Generic Rules
@@ -32,11 +33,10 @@ hello-gpu: hello-gpu.o cl-helper.o
 # /----------------------------------------------------------
 # | Clean-up rules
 # +----------------------------------------------------------
-# | Again, use these only if you understand what's going on.
 
-.PHONY:	clean realclean
+.PHONY:	clean
 clean:
-	rm -f hello-gpu *.o
+	rm -f hello-gpu gpu-wave *.o
 # |
 # \----------------------------------------------------------
 

@@ -11,10 +11,16 @@ int main()
   cl_command_queue queue;
   create_context_on("NVIDIA", NULL, 0, &ctx, &queue);
 
+  // --------------------------------------------------------------------------
+  // load kernels 
+  // --------------------------------------------------------------------------
   char *knl_text = read_file("vec-add.cl");
   cl_kernel knl = kernel_from_string(ctx, knl_text, "sum", NULL);
   free(knl_text);
 
+  // --------------------------------------------------------------------------
+  // allocate and initialize CPU memory
+  // --------------------------------------------------------------------------
   const size_t sz = 10000;
   float a[sz], b[sz], c[sz];
 
@@ -24,6 +30,9 @@ int main()
     b[i] = 2*i;
   }
 
+  // --------------------------------------------------------------------------
+  // allocate GPU memory
+  // --------------------------------------------------------------------------
   cl_int status;
   cl_mem buf_a = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 
       sizeof(float) * sz, 0, &status);
@@ -37,6 +46,9 @@ int main()
       sizeof(float) * sz, 0, &status);
   CHECK_CL_ERROR(status, "clCreateBuffer");
 
+  // --------------------------------------------------------------------------
+  // transfer to GPU
+  // --------------------------------------------------------------------------
   CALL_CL_GUARDED(clEnqueueWriteBuffer, (
         queue, buf_a, /*blocking*/ CL_TRUE, /*offset*/ 0,
         sz * sizeof(float), a,
@@ -47,6 +59,9 @@ int main()
         sz * sizeof(float), b,
         0, NULL, NULL));
 
+  // --------------------------------------------------------------------------
+  // run code on GPU
+  // --------------------------------------------------------------------------
   SET_3_KERNEL_ARGS(knl, buf_a, buf_b, buf_c);
   size_t gdim[] = { sz };
   size_t ldim[] = { 1 };
@@ -55,6 +70,9 @@ int main()
        /*dimensions*/ 1, NULL, gdim, ldim,
        0, NULL, NULL));
 
+  // --------------------------------------------------------------------------
+  // transfer back & check
+  // --------------------------------------------------------------------------
   CALL_CL_GUARDED(clEnqueueReadBuffer, (
         queue, buf_c, /*blocking*/ CL_TRUE, /*offset*/ 0,
         sz * sizeof(float), c,
@@ -64,9 +82,13 @@ int main()
     if (c[i] != 3*i)
       printf("BAD %ld!\n", i);
 
+  // --------------------------------------------------------------------------
+  // clean up
+  // --------------------------------------------------------------------------
   CALL_CL_GUARDED(clReleaseMemObject, (buf_a));
   CALL_CL_GUARDED(clReleaseMemObject, (buf_b));
   CALL_CL_GUARDED(clReleaseMemObject, (buf_c));
   CALL_CL_GUARDED(clReleaseKernel, (knl));
+  CALL_CL_GUARDED(clReleaseCommandQueue, (queue));
   CALL_CL_GUARDED(clReleaseContext, (ctx));
 }
