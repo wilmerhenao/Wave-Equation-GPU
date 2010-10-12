@@ -15,12 +15,10 @@ int main()
   // --------------------------------------------------------------------------
   // load kernels
   // --------------------------------------------------------------------------
-  puts("A");
   char *knl_text = read_file("wave-kernel-simple.cl");
   cl_kernel wave_knl = kernel_from_string(ctx, knl_text, "fd_update", NULL);
   free(knl_text);
 
-  puts("A");
   knl_text = read_file("source-term.cl");
   cl_kernel source_knl = kernel_from_string(ctx, knl_text, "add_source_term", NULL);
   free(knl_text);
@@ -42,10 +40,10 @@ int main()
 
   // We're dividing into (points-1) intervals.
   float dx = (plus_bdry-minus_bdry)/(points-1);
-  float dt = dx;
+  float dt = 0.5*dx;
   float dt2_over_dx2 = dt*dt / dx*dx;
 
-  const float final_time = 20;
+  const float final_time = 200;
 
   // This might run a little short, which is ok in our case.
   unsigned step_count = final_time/dt;
@@ -86,14 +84,23 @@ int main()
   for (unsigned step = 0; step < step_count; ++step)
   {
     float t = step * dt;
+    if (step % 50 == 0)
+      printf("step %d\n", step);
 
     // visualize, if necessary
-    if (step % 1 == 0)
+    if (step % 20 == 0 && step)
     {
-      CALL_CL_GUARDED(clEnqueueWriteBuffer, (
+      CALL_CL_GUARDED(clEnqueueReadBuffer, (
             queue, cur_u, /*blocking*/ CL_TRUE, /*offset*/ 0,
             field_size * sizeof(float), host_buf,
             0, NULL, NULL));
+
+      for (size_t i = 0; i < field_size; ++i)
+        if (isnan(host_buf[i]))
+        {
+          fputs("nan encountered, aborting", stderr);
+          goto cleanup;
+        }
 
       char fnbuf[100];
       sprintf(fnbuf, "wave-%05d.bov", step);
@@ -102,6 +109,7 @@ int main()
       CHECK_SYS_ERROR(!bov_header, "opening vis header");
 
       sprintf(fnbuf, "wave-%05d.dat", step);
+      fprintf(bov_header, "TIME: %g\n", t);
       fprintf(bov_header, "DATA_FILE: %s\n", fnbuf);
       fprintf(bov_header, "DATA_SIZE: %d %d %d\n", points+2, points+2, points+2);
       fputs("DATA_FORMAT: FLOAT\n", bov_header);
@@ -140,7 +148,7 @@ int main()
       size_t ldim[] = { 1 };
 
       unsigned base = 15 + dim_x*(7 + dim_y * 5);
-      float value = sin(M_PI*t);
+      float value = sin(0.5*t);
       SET_3_KERNEL_ARGS(source_knl, hist_u, base, value);
 
       CALL_CL_GUARDED(clEnqueueNDRangeKernel,
@@ -155,6 +163,7 @@ int main()
     hist_u = tmp;
   }
 
+cleanup:
   CALL_CL_GUARDED(clFinish, (queue));
 
   // --------------------------------------------------------------------------
