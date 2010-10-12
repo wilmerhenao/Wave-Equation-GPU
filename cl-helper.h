@@ -67,7 +67,7 @@
 const char *cl_error_to_str(cl_int e);
 void print_platforms_devices();
 void create_context_on(const char *plat_name, const char*dev_name, cl_uint idx,
-    cl_context *ctx, cl_command_queue *queue);
+    cl_context *ctx, cl_command_queue *queue, int enable_profiling);
 char *read_file(const char *filename);
 cl_kernel kernel_from_string(cl_context ctx, 
     char const *knl, char const *knl_name, char const *options);

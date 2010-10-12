@@ -147,7 +147,7 @@ void print_platforms_devices()
 
 
 void create_context_on(const char *plat_name, const char*dev_name, cl_uint idx,
-    cl_context *ctx, cl_command_queue *queue)
+    cl_context *ctx, cl_command_queue *queue, int enable_profiling)
 {
   cl_uint plat_count;
 
@@ -198,9 +198,14 @@ void create_context_on(const char *plat_name, const char*dev_name, cl_uint idx,
             cl_int status;
             *ctx = clCreateContext(
                 cps, 1, &dev, NULL, NULL, &status);
-            CHECK_CL_ERROR(status, "clCreateContext")
+            CHECK_CL_ERROR(status, "clCreateContext");
 
-            *queue = clCreateCommandQueue(*ctx, dev, 0, &status);
+
+            cl_command_queue_properties qprops = 0;
+            if (enable_profiling)
+              qprops |= CL_QUEUE_PROFILING_ENABLE;
+
+            *queue = clCreateCommandQueue(*ctx, dev, qprops, &status);
             CHECK_CL_ERROR(status, "clCreateCommandQueue");
 
             return;

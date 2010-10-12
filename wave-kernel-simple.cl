@@ -9,12 +9,13 @@ __kernel void fd_update(
 {
   for (int k = 1; k <= points; ++k)
   {
-    const int i = get_global_id(0) + 1; // + 1 to account for ghost cells
-    const int j = get_global_id(1) + 1;
+    // + 1 to account for ghost cells
+    const int i = get_global_id(1) + 1;
+    const int j = get_global_id(0) + 1;
 
     unsigned base = i + dim_x*(j + dim_y * k);
 
-    new_and_hist_u[base] = 
+    new_and_hist_u[base] =
       2 * u[base] - new_and_hist_u[base]
       + dt2_over_dx2 * (
           - 6*u[base]

@@ -9,7 +9,7 @@ int main()
 
   cl_context ctx;
   cl_command_queue queue;
-  create_context_on("NVIDIA", NULL, 0, &ctx, &queue);
+  create_context_on("NVIDIA", NULL, 0, &ctx, &queue, 0);
 
   // --------------------------------------------------------------------------
   // load kernels 

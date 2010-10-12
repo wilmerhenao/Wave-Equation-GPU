@@ -4,13 +4,29 @@
 
 
 
+// #define DO_TIMING
+
+
+
+
 int main()
 {
+#ifdef DO_TIMING
+  double gbytes_accessed = 0;
+  double seconds_taken = 0;
+#endif
+
   // print_platforms_devices();
 
   cl_context ctx;
   cl_command_queue queue;
-  create_context_on("NVIDIA", NULL, 0, &ctx, &queue);
+  create_context_on("NVIDIA", NULL, 0, &ctx, &queue,
+#ifdef DO_TIMING
+      1
+#else
+      0
+#endif
+      );
 
   // --------------------------------------------------------------------------
   // load kernels
@@ -136,10 +152,33 @@ int main()
 
       SET_6_KERNEL_ARGS(wave_knl, dt2_over_dx2, hist_u, cur_u, dim_x, dim_y, points);
 
+#ifdef DO_TIMING
+      cl_event evt;
+      cl_event *evt_ptr = &evt;
+#else
+      cl_event *evt_ptr = NULL;
+#endif
+
       CALL_CL_GUARDED(clEnqueueNDRangeKernel,
           (queue, wave_knl,
            /*dimensions*/ 2, NULL, gdim, ldim,
-           0, NULL, NULL));
+           0, NULL, evt_ptr));
+
+#ifdef DO_TIMING
+      // If timing is enabled, this wait can mean a significant performance hit.
+      CALL_CL_GUARDED(clWaitForEvents, (1, &evt));
+
+      gbytes_accessed += 1e-9*(sizeof(float) * field_size * 10);
+      cl_ulong start, end;
+      CALL_CL_GUARDED(clGetEventProfilingInfo, (evt, 
+            CL_PROFILING_COMMAND_START, sizeof(start), &start, NULL));
+      CALL_CL_GUARDED(clGetEventProfilingInfo, (evt, 
+            CL_PROFILING_COMMAND_END, sizeof(start), &end, NULL));
+
+      seconds_taken += 1e-9*(end-start);
+
+      CALL_CL_GUARDED(clReleaseEvent, (evt));
+#endif
     }
 
     {
@@ -162,6 +201,10 @@ int main()
     cur_u = hist_u;
     hist_u = tmp;
   }
+
+#ifdef DO_TIMING
+  printf("GBytes/sec: %g\n", gbytes_accessed/seconds_taken);
+#endif
 
 cleanup:
   CALL_CL_GUARDED(clFinish, (queue));
