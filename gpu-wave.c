@@ -40,29 +40,34 @@ int main()
   free(knl_text);
 
   // --------------------------------------------------------------------------
-  // allocate and initialize CPU memory
+  // set up grid
   // --------------------------------------------------------------------------
   const unsigned points = 64;
 
-  // add 2 in each dimension for BC data
+  const float minus_bdry = -1, plus_bdry = 1;
+
+  // We're dividing into (points-1) intervals.
+  float dx = (plus_bdry-minus_bdry)/(points-1);
+  float dt = 0.5*dx;
+  float dt2_over_dx2 = dt*dt / (dx*dx);
+
+  const float final_time = 200;
+
+  // This might run a little short, which is ok in our case.
+  unsigned step_count = final_time/dt;
+  printf("will take %d steps.\n", step_count);
+
+  // --------------------------------------------------------------------------
+  // allocate and initialize CPU memory
+  // --------------------------------------------------------------------------
+
+  // add 2 in each dimension for boundary condition data
   const size_t field_size = (points+2)*(points+2)*(points+2);
   float *host_buf = malloc(field_size*sizeof(float));
   CHECK_SYS_ERROR(!host_buf, "allocating host_buf");
 
   for (size_t i = 0; i < field_size; ++i)
     host_buf[i] = 0;
-
-  float minus_bdry = -1, plus_bdry = 1;
-
-  // We're dividing into (points-1) intervals.
-  float dx = (plus_bdry-minus_bdry)/(points-1);
-  float dt = 0.5*dx;
-  float dt2_over_dx2 = dt*dt / dx*dx;
-
-  const float final_time = 200;
-
-  // This might run a little short, which is ok in our case.
-  unsigned step_count = final_time/dt;
 
   // --------------------------------------------------------------------------
   // allocate GPU memory
@@ -100,11 +105,14 @@ int main()
   for (unsigned step = 0; step < step_count; ++step)
   {
     float t = step * dt;
-    if (step % 50 == 0)
+    if (step % 100 == 0)
+    {
       printf("step %d\n", step);
+      CALL_CL_GUARDED(clFinish, (queue));
+    }
 
     // visualize, if necessary
-    if (step % 20 == 0 && t > 38)
+    if (step % (points / 8) == 0 && t > 0.6)
     {
       CALL_CL_GUARDED(clEnqueueReadBuffer, (
             queue, cur_u, /*blocking*/ CL_TRUE, /*offset*/ 0,
@@ -114,7 +122,7 @@ int main()
       for (size_t i = 0; i < field_size; ++i)
         if (isnan(host_buf[i]))
         {
-          fputs("nan encountered, aborting", stderr);
+          fputs("nan encountered, aborting\n", stderr);
           goto cleanup;
         }
 
@@ -186,8 +194,8 @@ int main()
       size_t gdim[] = { 1 };
       size_t ldim[] = { 1 };
 
-      unsigned base = 15 + dim_x*(7 + dim_y * 5);
-      float value = dt*dt*sin(0.5*t);
+      unsigned base = (points/4) + dim_x*((points/5) + dim_y * (points/6));
+      float value = dt*dt*sin(20*t);
       SET_3_KERNEL_ARGS(source_knl, hist_u, base, value);
 
       CALL_CL_GUARDED(clEnqueueNDRangeKernel,
