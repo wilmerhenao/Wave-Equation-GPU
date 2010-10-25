@@ -34,7 +34,7 @@ int main()
   cl_mem buf_a = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 
       sizeof(float) * sz, 0, &status);
   CHECK_CL_ERROR(status, "clCreateBuffer");
-
+2
   cl_mem buf_b = clCreateBuffer(ctx, CL_MEM_READ_WRITE,
       sizeof(float) * sz, 0, &status);
   CHECK_CL_ERROR(status, "clCreateBuffer");

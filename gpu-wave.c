@@ -1,13 +1,7 @@
 #include "cl-helper.h"
 #include <math.h>
 
-
-
-
 // #define DO_TIMING
-
-
-
 
 int main()
 {
@@ -16,7 +10,7 @@ int main()
   double seconds_taken = 0;
 #endif
 
-  // print_platforms_devices();
+  print_platforms_devices();
 
   cl_context ctx;
   cl_command_queue queue;
@@ -47,7 +41,7 @@ int main()
   const float minus_bdry = -1, plus_bdry = 1;
 
   // We're dividing into (points-1) intervals.
-  float dx = (plus_bdry-minus_bdry)/(points-1);
+  float dx = (plus_bdry-minus_bdry)/(points+1);
   float dt = 0.5*dx;
   float dt2_over_dx2 = dt*dt / (dx*dx);
 
@@ -166,7 +160,7 @@ int main()
 #else
       cl_event *evt_ptr = NULL;
 #endif
-
+      // this is where you run the whole enchilada
       CALL_CL_GUARDED(clEnqueueNDRangeKernel,
           (queue, wave_knl,
            /*dimensions*/ 2, NULL, gdim, ldim,
@@ -208,7 +202,7 @@ int main()
     cl_mem tmp = cur_u;
     cur_u = hist_u;
     hist_u = tmp;
-  }
+  } // this is where the step ends
 
 #ifdef DO_TIMING
   printf("GBytes/sec: %g\n", gbytes_accessed/seconds_taken);
