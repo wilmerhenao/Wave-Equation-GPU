@@ -1,7 +1,7 @@
 #include "cl-helper.h"
 #include <math.h>
 
-// #define DO_TIMING
+#define DO_TIMING
 
 int main()
 {
@@ -184,13 +184,14 @@ int main()
     }
 
     {
+      // After we have solved the stencil we want to add the term "f"
       // invoke source term kernel
-      size_t gdim[] = { 1 };
-      size_t ldim[] = { 1 };
+      size_t gdim[] = { points, points };
+      size_t ldim[] = { 16, 16 };
 
-      unsigned base = (points/4) + dim_x*((points/5) + dim_y * (points/6));
-      float value = dt*dt*sin(20*t);
-      SET_3_KERNEL_ARGS(source_knl, hist_u, base, value);
+      //unsigned base = (points/4) + dim_x*((points/5) + dim_y * (points/6));
+      //float value = dt*dt*sin(20*t);
+      SET_7_KERNEL_ARGS(source_knl, hist_u, points, dt, t, dim_x, dim_y, dx);
 
       CALL_CL_GUARDED(clEnqueueNDRangeKernel,
           (queue, source_knl,
