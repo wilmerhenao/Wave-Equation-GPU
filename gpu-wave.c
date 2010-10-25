@@ -7,6 +7,8 @@ int main()
 {
 #ifdef DO_TIMING
   double gbytes_accessed = 0;
+  double mflops = 0;
+  double mcells = 0;
   double seconds_taken = 0;
 #endif
 
@@ -171,6 +173,8 @@ int main()
       CALL_CL_GUARDED(clWaitForEvents, (1, &evt));
 
       gbytes_accessed += 1e-9*(sizeof(float) * field_size * 10);
+      mflops += 2.0 * points * 23 / 1.0e3; // I count 23 operations inside
+      mcells += 6.0 * points / 1.0e3;
       cl_ulong start, end;
       CALL_CL_GUARDED(clGetEventProfilingInfo, (evt, 
             CL_PROFILING_COMMAND_START, sizeof(start), &start, NULL));
@@ -186,17 +190,42 @@ int main()
     {
       // After we have solved the stencil we want to add the term "f"
       // invoke source term kernel
-      size_t gdim[] = { points, points };
-      size_t ldim[] = { 16, 16 };
+      size_t gdim[] = { points, points, points };
+      size_t ldim[] = { 16, 16 , 16};
 
       //unsigned base = (points/4) + dim_x*((points/5) + dim_y * (points/6));
       //float value = dt*dt*sin(20*t);
       SET_7_KERNEL_ARGS(source_knl, hist_u, points, dt, t, dim_x, dim_y, dx);
-
+    #ifdef DO_TIMING
+          cl_event evt;
+          cl_event *evt_ptr = &evt;
+    #else
+          cl_event *evt_ptr = NULL;
+    #endif
       CALL_CL_GUARDED(clEnqueueNDRangeKernel,
           (queue, source_knl,
            /*dimensions*/ 1, NULL, gdim, ldim,
-           0, NULL, NULL));
+           0, NULL, evt_ptr));
+
+     #ifdef DO_TIMING
+      // timing for the "f" part... which didn't exist before
+      // If timing is enabled, this wait can mean a significant performance hit.
+         CALL_CL_GUARDED(clWaitForEvents, (1, &evt));
+
+         gbytes_accessed += 1e-9*(sizeof(float) * field_size * 10);
+         mflops += 2.0 * points * 27 / 1.0e3; // I count 23 operations inside
+         mcells += points * 6.0 /1.0e3;
+         cl_ulong start, end;
+         CALL_CL_GUARDED(clGetEventProfilingInfo, (evt, 
+               CL_PROFILING_COMMAND_START, sizeof(start), &start, NULL));
+         CALL_CL_GUARDED(clGetEventProfilingInfo, (evt, 
+               CL_PROFILING_COMMAND_END, sizeof(start), &end, NULL));
+
+         seconds_taken += 1e-9*(end-start);
+
+         CALL_CL_GUARDED(clReleaseEvent, (evt));
+     #endif
+
     }
 
     // swap buffers
@@ -206,6 +235,8 @@ int main()
   } // this is where the step ends
 
 #ifdef DO_TIMING
+  printf("MCells/sec: %g\n", mcells/seconds_taken);
+  printf("MFlops/sec: %g\n", mflops/seconds_taken);
   printf("GBytes/sec: %g\n", gbytes_accessed/seconds_taken);
 #endif
 
