@@ -191,7 +191,7 @@ int main()
       // After we have solved the stencil we want to add the term "f"
       // invoke source term kernel
       size_t gdim[] = { points, points, points };
-      size_t ldim[] = { 16, 16 , 16};
+      size_t ldim[] = { 32, 32 , 32};
 
       //unsigned base = (points/4) + dim_x*((points/5) + dim_y * (points/6));
       //float value = dt*dt*sin(20*t);
