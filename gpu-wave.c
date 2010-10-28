@@ -173,8 +173,8 @@ int main()
       CALL_CL_GUARDED(clWaitForEvents, (1, &evt));
 
       gbytes_accessed += 1e-9*(sizeof(float) * field_size * 10);
-      mflops += 2.0 * points * 23 / 1.0e3; // I count 23 operations inside
-      mcells += 6.0 * points / 1.0e3;
+      mflops += 2.0 * points * 50 / 1.0e3; // I count 23 operations inside
+      mcells += 12.0 * points / 1.0e3;
       cl_ulong start, end;
       CALL_CL_GUARDED(clGetEventProfilingInfo, (evt, 
             CL_PROFILING_COMMAND_START, sizeof(start), &start, NULL));
@@ -213,8 +213,8 @@ int main()
          CALL_CL_GUARDED(clWaitForEvents, (1, &evt));
 
          gbytes_accessed += 1e-9*(sizeof(float) * field_size * 10);
-         mflops += 2.0 * points * 27 / 1.0e3; // I count 23 operations inside
-         mcells += points * 6.0 /1.0e3;
+         mflops += 2.0 * points * 50 / 1.0e3; // I count 50 operations inside
+         mcells += points * 12.0 /1.0e3;
          cl_ulong start, end;
          CALL_CL_GUARDED(clGetEventProfilingInfo, (evt, 
                CL_PROFILING_COMMAND_START, sizeof(start), &start, NULL));
